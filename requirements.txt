@@ -1,0 +1,2 @@
+# This suite is a thin orchestrator over sibling projects.
+# Install dependencies in `../youtube` and `../rekordbox`.
