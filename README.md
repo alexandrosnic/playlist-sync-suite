@@ -1,27 +1,30 @@
 # Playlist Sync Suite
 
-Runs both projects in sequence:
-1. YouTube downloader sync
-2. Rekordbox XML sync
+Runs two independent projects in sequence:
+1. Download/sync playlists locally from YouTube
+2. Sync those playlists into Rekordbox XML
 
-## Entrypoint
-- main.py
+This suite orchestrates:
+- https://github.com/alexandrosnic/youtube-playlist-downloader
+- https://github.com/alexandrosnic/rekordbox-playlist-sync
+- https://github.com/alexandrosnic/playlist-sync-suite
 
-## Run
-```pwsh
-python3 main.py
-```
+## Setup
+This repo has no local config. Configure the sibling projects instead:
+- YouTube: `youtube/config/playlist_path.json` -> `youtube_paths.youtube_playlist_m3u8_dir`
+- Rekordbox: `rekordbox/config/playlist_path.json` -> `sync_paths.source_playlist_m3u8_dir`
+- Rekordbox: `rekordbox/config/playlist_path.json` -> `sync_paths.rekordbox_custom_playlists_m3u8_dir`
+- Rekordbox: `rekordbox/config/playlist_path.json` -> `sync_paths.xml_library_path`
 
-## One-time setup
-```pwsh
-# YouTube project env
+Install each sibling project's dependencies once:
+
+```bash
 cd ../youtube
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
 deactivate
 
-# Rekordbox project env
 cd ../rekordbox
 python3 -m venv .venv
 source .venv/bin/activate
@@ -29,68 +32,31 @@ python -m pip install -r requirements.txt
 deactivate
 ```
 
-## Daily run (no activation required)
-```pwsh
-cd ../playlist_sync_suite
+## Run
+```bash
 python3 main.py
 ```
 
-You can deactivate after setup because this suite calls each sibling project
-with its own interpreter path directly.
+The suite uses each sibling project's `.venv` Python if available, otherwise it falls back to the current interpreter.
 
-This project uses the sibling projects directly:
-- youtube/main.py
-- rekordbox/main.py
+Optional overrides:
+- `YOUTUBE_PROJECT_DIR=/abs/path/to/youtube`: use this when the YouTube repo is not in the default sibling path (`../youtube`).
+- `REKORDBOX_PROJECT_DIR=/abs/path/to/rekordbox`: use this when the Rekordbox repo is not in the default sibling path (`../rekordbox`).
+- `YOUTUBE_PYTHON=/abs/path/to/python`: force a specific Python interpreter for the YouTube step (for example a custom venv/conda env).
+- `REKORDBOX_PYTHON=/abs/path/to/python`: force a specific Python interpreter for the Rekordbox step.
 
-All config is owned by those two projects. There is no local `config/` here.
+If you do not set these, the suite auto-detects sibling folders and uses each project's local `.venv` Python when available.
 
-Interpreter selection used by the suite:
-- Uses `../youtube/.venv/bin/python` for YouTube if present.
-- Uses `../rekordbox/.venv/bin/python` for Rekordbox if present.
-- Falls back to the current Python interpreter if project venv is missing.
-- Optional overrides via env vars:
-  - `YOUTUBE_PYTHON=/abs/path/to/python`
-  - `REKORDBOX_PYTHON=/abs/path/to/python`
+## CLI options
+- `--only-playlist "Playlist Name"`: pass through to YouTube project; process one playlist by exact title
+- `--dry-run`: pass through to YouTube project; no downloads or playlist writes
+- `--use-cache`: pass through to YouTube project; prefer cached API data when available
+- `--skip-rekordbox`: run only YouTube project and skip Rekordbox step
+- `--auto-rekordbox`: pass through to Rekordbox project XML-only automated flow
+- `--full-auto`: pass through to Rekordbox best-effort UI + XML automation flow
+- `--export-timeout 300`: pass through timeout (seconds) used by Rekordbox full-auto export watcher
+- `--auto-import-ui`: with `--full-auto`, attempt Rekordbox UI-triggered XML import
 
-Project location overrides (useful when repos are not sibling folders):
-- `YOUTUBE_PROJECT_DIR=/abs/path/to/youtube-repo`
-- `REKORDBOX_PROJECT_DIR=/abs/path/to/rekordbox-repo`
-
-## Split repositories and cloning
-Repository URLs:
-- YouTube: `git@github.com:alexandrosnic/youtube-playlist-downloader.git`
-- Rekordbox: `git@github.com:alexandrosnic/rekordbox-playlist-sync.git`
-- Suite: `git@github.com:alexandrosnic/playlist-sync-suite.git`
-
-```pwsh
-mkdir playlist-sync-workspace
-cd playlist-sync-workspace
-
-# clone all three repos as siblings
-git clone git@github.com:alexandrosnic/youtube-playlist-downloader.git youtube
-git clone git@github.com:alexandrosnic/rekordbox-playlist-sync.git rekordbox
-git clone git@github.com:alexandrosnic/playlist-sync-suite.git playlist_sync_suite
-```
-
-If your folder layout is different, export project paths before running the suite:
-
-```pwsh
-export YOUTUBE_PROJECT_DIR=/abs/path/to/youtube
-export REKORDBOX_PROJECT_DIR=/abs/path/to/rekordbox
-cd /abs/path/to/playlist_sync_suite
-python3 main.py
-```
-
-## Useful options
-- --only-playlist "Playlist Name"
-- --skip-rekordbox
-- --auto-rekordbox
-- --full-auto
-- --auto-import-ui
-
-## Project structure
-- main.py
-- README.md
-- requirements.txt
-
-This folder is self-contained and can be published as its own repository.
+## Notes
+- This repo calls `youtube/main.py` and `rekordbox/main.py` directly
+- It can be published independently, but it depends on those two sibling repos at runtime
